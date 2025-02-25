@@ -13,12 +13,13 @@ def evaluate_resume_with_llm(resume_text, job_description):
     """
 
     prompt = f"""
-    You are an intelligent AI assistant that evaluates resumes for job suitability.
-    Given the following resume and job description, rate how well the resume fits the job on a scale from 0 to 100.
-    Consider the candidate's skills, experience, and qualifications.
-    Provide a balanced judgment—not too harsh, but not too lenient.
-    
-    Resume Text:
+    You are an AI assistant helping HRs evaluate resumes. Given the job description and resume, score the candidate from 0 to 100 based on:
+    1. **Skill match** (40%) - Does the candidate have the required skills?
+    2. **Experience relevance** (30%) - Has the candidate worked in similar roles?
+    3. **Education fit** (20%) - Does the degree match job requirements?
+    4. **Certifications/Projects** (10%) - Relevant courses or projects?
+
+    Resume:
     {resume_text}
 
     Job Description:
@@ -26,7 +27,7 @@ def evaluate_resume_with_llm(resume_text, job_description):
 
     Provide output in this format:
     SCORE: (0-100)
-    REASON: (Short reason for the score)
+    REASON: (Explain skill match, experience, education, and projects.)
     """
 
     payload = {
