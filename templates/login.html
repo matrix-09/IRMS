@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f3f2ef;
+        }
+
+        body.dark-mode {
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+
+        .card {
+            width: 400px;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+        }
+
+        .dark-mode .card {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+
+        .toggle-container {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="toggle-container form-check form-switch">
+        <input class="form-check-input" type="checkbox" id="darkModeToggle">
+        <label class="form-check-label" for="darkModeToggle">Dark Mode</label>
+    </div>
+
+    <div class="card">
+        <h3 class="text-center mb-4">Login</h3>
+        <form method="POST">
+            <div class="mb-3">
+                <input type="email" name="email" placeholder="Email or phone" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <input type="password" name="password" placeholder="Password" class="form-control" required>
+            </div>
+            <a href="#" class="text-end d-block mb-3">Forgot password?</a>
+            <button type="submit" class="btn btn-primary w-100">Login</button>
+        </form>
+        <div class="text-center mt-3">
+            <span>New to our platform?</span>
+            <a href="{{ url_for('auth.register') }}">Register now</a>
+        </div>
+    </div>
+
+    <script>
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const body = document.body;
+
+        function applyTheme() {
+            const theme = localStorage.getItem('theme');
+            body.classList.toggle('dark-mode', theme === 'dark');
+            darkModeToggle.checked = theme === 'dark';
+        }
+
+        darkModeToggle.addEventListener('change', () => {
+            localStorage.setItem('theme', darkModeToggle.checked ? 'dark' : 'light');
+            applyTheme();
+        });
+
+        applyTheme();
+    </script>
+</body>
+</html>

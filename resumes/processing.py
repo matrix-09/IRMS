@@ -3,7 +3,7 @@ import re
 import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
-#from resumes.mailer import send_email  # Import mailer module
+from resumes.llm_filter import evaluate_resume_with_llm # Import LLM function
 
 def extract_text_from_pdf(pdf_file):
     """Extracts text from a PDF file."""
@@ -37,3 +37,27 @@ def build_faiss_index(resume_embeddings):
         index.add(np.array(resume_embeddings))
         return index
     return None
+
+def filter_resumes_with_llm(resumes, job_description, threshold=50):
+    """
+    Uses an LLM to filter resumes based on job relevance.
+
+    Args:
+        resumes (list of dict): List of resumes with text, embeddings, and emails.
+        job_description (str): The job description.
+        threshold (int): Minimum score required to be shortlisted.
+
+    Returns:
+        List of shortlisted resumes with LLM scores.
+    """
+    shortlisted_resumes = []
+
+    for resume in resumes:
+        score, reason = evaluate_resume_with_llm(resume["text"], job_description)
+
+        if score >= threshold:
+            resume["score"] = score
+            resume["reason"] = reason
+            shortlisted_resumes.append(resume)
+
+    return shortlisted_resumes
