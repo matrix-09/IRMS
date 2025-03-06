@@ -1,10 +1,8 @@
 from flask import Blueprint, request, jsonify
-import numpy as np
-import faiss
 import logging
 from resumes.processing import (
     extract_text_from_pdf, preprocess_text, get_embedding, 
-    extract_email, filter_resumes_with_llm
+    extract_email, match_resumes
 )
 from resumes.mailer import send_email
 
@@ -13,12 +11,6 @@ resume_bp = Blueprint("resumes", __name__)
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-@resume_bp.errorhandler(500)
-def internal_error(error):
-    """Handles internal server errors and ensures a JSON response."""
-    logging.error(f"Server error: {error}")
-    return jsonify({"error": "Internal server error occurred"}), 500
-
 @resume_bp.route("/upload_and_match", methods=["POST"])
 def upload_and_match():
     """Uploads resumes, processes job description, matches candidates, and sends emails."""
@@ -26,6 +18,13 @@ def upload_and_match():
         # Get resumes and job description from request
         files = request.files.getlist("resumes")
         job_description = request.form.get("job_description")
+        threshold = request.form.get("strictness")
+        
+        # Convert threshold to float safely
+        try:
+            threshold = float(threshold)
+        except ValueError:
+            return jsonify({"error": "Invalid threshold value. Must be a number."}), 400
 
         if not files or not job_description:
             return jsonify({"error": "Both resumes and job description are required"}), 400
@@ -51,10 +50,10 @@ def upload_and_match():
         if not resumes:
             return jsonify({"error": "No valid resumes were processed"}), 400
 
-        # Filter resumes using LLM
-        shortlisted_resumes = filter_resumes_with_llm(resumes, job_description, threshold=50)
+        # Match resumes with job description
+        shortlisted_resumes = match_resumes(resumes, threshold, job_description)
 
-        # Prepare response data
+        # Prepare response
         results = []
         shortlisted_emails = []
 
@@ -63,21 +62,21 @@ def upload_and_match():
                 "resume": candidate["filename"],
                 "email": candidate["email"],
                 "score": candidate["score"],
-                "reason": candidate["reason"]
+                "is_fraudulent": candidate["is_fraudulent"]
             })
 
-            if candidate["email"] != "No Email Found":
+            if candidate["email"] != "No Email Found" and not candidate["is_fraudulent"]:
                 shortlisted_emails.append(candidate["email"])
 
-        # Send emails to shortlisted candidates
+        # Send emails to shortlisted, non-fraudulent candidates
         if shortlisted_emails:
             subject = "Congratulations! You have been shortlisted"
-            body = "Dear Candidate,\n\nYou have been shortlisted for the job. Please stay tuned for further updates.\n\nBest regards,\nHR Team"
+            body = "Dear Candidate,\n\nYou have been shortlisted. Further updates will be shared soon.\n\nBest regards,\nHR Team"
             for email in shortlisted_emails:
                 send_email(email, subject, body)
 
         return jsonify({
-            "message": "Resumes processed and matched successfully",
+            "message": "Resumes processed successfully",
             "matches": results,
             "emails_sent": len(shortlisted_emails)
         })

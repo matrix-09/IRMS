@@ -2,71 +2,436 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HR Dashboard</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body.dark-mode {
-            background-color: #121212;
-            color: #e0e0e0;
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --success-color: #4cc9f0;
+            --danger-color: #f72585;
+            --light-color: #f8f9fa;
+            --dark-color: #121212;
+            --card-bg-light: #ffffff;
+            --card-bg-dark: #1e1e1e;
+            --text-light: #212529;
+            --text-dark: #e0e0e0;
+            --border-light: #dee2e6;
+            --border-dark: #444;
+            --transition-speed: 0.3s;
         }
 
-        .dark-mode .card, .dark-mode .form-control, .dark-mode textarea {
-            background-color: #1e1e1e;
-            color: #e0e0e0;
-            border-color: #444;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color var(--transition-speed), color var(--transition-speed);
+            background-color: #f5f7fa;
+            color: var(--text-light);
+            padding-bottom: 2rem;
+        }
+
+        body.dark-mode {
+            background-color: var(--dark-color);
+            color: var(--text-dark);
+        }
+
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 1rem;
+            background-color: var(--light-color);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: background-color var(--transition-speed);
+        }
+
+        .dark-mode .navbar {
+            background-color: #1a1a1a;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
         }
 
         .toggle-container {
-            position: absolute;
-            top: 15px;
-            right: 100px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .logout-btn {
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
             position: absolute;
-            top: 15px;
-            right: 15px;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .main-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .page-title {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            transition: background-color var(--transition-speed), box-shadow var(--transition-speed);
+            background-color: var(--card-bg-light);
+            border: 1px solid var(--border-light);
+        }
+
+        .dark-mode .card {
+            background-color: var(--card-bg-dark);
+            border-color: var(--border-dark);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-title {
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control, .form-select {
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-light);
+            transition: border-color var(--transition-speed), background-color var(--transition-speed);
+        }
+
+        .dark-mode .form-control, .dark-mode .form-select {
+            background-color: #2d2d2d;
+            border-color: var(--border-dark);
+            color: var(--text-dark);
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+        }
+
+        .form-range {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-check {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-check-input:checked {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover, .btn-primary:focus {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            border-color: var(--danger-color);
+        }
+
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 2rem 0;
+        }
+
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            color: var(--primary-color);
+        }
+
+        .file-upload-container {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            transition: border-color 0.3s;
+            cursor: pointer;
+        }
+
+        .dark-mode .file-upload-container {
+            border-color: #555;
+        }
+
+        .file-upload-container:hover {
+            border-color: var(--primary-color);
+        }
+
+        .file-upload-icon {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        #fileCount {
+            margin-top: 0.5rem;
+            font-weight: 500;
+        }
+
+        .range-value-display {
+            display: flex;
+            justify-content: space-between;
+            margin-top: -1rem;
+            margin-bottom: 1rem;
+        }
+
+        .threshold-display {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .list-group-item {
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            transition: background-color var(--transition-speed);
+        }
+
+        .dark-mode .list-group-item {
+            background-color: #2d2d2d;
+            border-color: var(--border-dark);
+            color: var(--text-dark);
+        }
+
+        .candidate-score {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-weight: 600;
+            margin-left: 0.5rem;
+            background-color: rgba(67, 97, 238, 0.1);
+            color: var(--primary-color);
+        }
+
+        .candidate-email {
+            display: block;
+            margin-top: 0.5rem;
+            color: #6c757d;
+        }
+
+        .dark-mode .candidate-email {
+            color: #adb5bd;
+        }
+
+        .result-summary {
+            display: flex;
+            justify-content: space-between;
+            background-color: rgba(67, 97, 238, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+        }
+
+        .dark-mode .result-summary {
+            background-color: rgba(67, 97, 238, 0.2);
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .summary-label {
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+
+        .dark-mode .summary-label {
+            color: #adb5bd;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-actions {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .card {
+                padding: 1.5rem;
+            }
         }
     </style>
 </head>
-<body class="container mt-5">
-
-    <!-- Dark mode toggle and logout -->
-    <div class="toggle-container form-check form-switch">
-        <input class="form-check-input" type="checkbox" id="darkModeToggle">
-        <label class="form-check-label" for="darkModeToggle">Dark Mode</label>
-    </div>
-    <div class="logout-btn">
-        <a href="{{ url_for('auth.logout') }}" class="btn btn-danger">Logout</a>
-    </div>
-
-    <h2 class="text-center mb-5">Welcome to the HR Dashboard</h2>
-
-    <h3 class="mb-4">Upload Resumes and Provide Job Description</h3>
-    <form id="uploadMatchForm" enctype="multipart/form-data">
-        <label for="resumes" class="form-label">Select Resumes (PDFs):</label>
-        <input type="file" id="resumes" name="resumes" multiple class="form-control mb-2" accept=".pdf" required>
-        <p id="fileCount" class="text-muted"></p>
-
-        <label for="job_description" class="form-label">Job Description:</label>
-        <textarea id="job_description" name="job_description" class="form-control mb-3" rows="4" required></textarea>
-
-        <button type="submit" id="submitBtn" class="btn btn-primary" disabled>Submit</button>
-    </form>
-
-    <!-- Spinner -->
-    <div id="loading" class="text-center mt-4" style="display: none;">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <i class="fas fa-users-cog"></i>
+                <span>HR Dashboard</span>
+            </div>
+            <div class="navbar-actions">
+                <div class="toggle-container">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="darkModeToggle">
+                        <span class="slider"></span>
+                    </label>
+                    <span id="themeLabel">Dark Mode</span>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-danger">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
         </div>
-        <p class="mt-2">Processing... Please wait.</p>
-    </div>
+    </nav>
 
-    <div id="response" class="mt-5"></div>
+    <div class="main-container">
+        <h2 class="page-title">Resume Screening Tool</h2>
+
+        <div class="card">
+            <h3 class="card-title">
+                <i class="fas fa-file-upload"></i>
+                Resume Matching
+            </h3>
+
+            <form id="uploadMatchForm" enctype="multipart/form-data">
+                <!-- File Upload -->
+                <label for="resumes" class="form-label">Select Resumes (PDFs):</label>
+                <div class="file-upload-container" id="uploadArea">
+                    <i class="fas fa-cloud-upload-alt file-upload-icon"></i>
+                    <p>Drag and drop resume files here or click to browse</p>
+                    <input type="file" id="resumes" name="resumes" multiple class="d-none" accept=".pdf" required>
+                </div>
+                <p id="fileCount" class="text-muted"></p>
+
+                <!-- Job Description -->
+                <label for="job_description" class="form-label">Job Description:</label>
+                <textarea id="job_description" name="job_description" class="form-control" rows="4" placeholder="Enter the job description here..." required></textarea>
+
+                <!-- Strictness Slider -->
+                <label for="strictness" class="form-label">Matching Threshold:</label>
+                <input type="range" id="strictness" name="strictness" class="form-range" min="30" max="90" step="5" value="50">
+                <div class="range-value-display">
+                    <span>Lenient (30)</span>
+                    <span>Strict (90)</span>
+                </div>
+                <div class="threshold-display">Current Threshold: <span id="thresholdValue">50</span>%</div>
+
+                <!-- Fraud Detection Checkbox -->
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="fraudDetection" name="fraudDetection">
+                    <label class="form-check-label" for="fraudDetection">
+                        Enable Resume Fraud Detection
+                    </label>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn btn-primary w-100" disabled>
+                    <i class="fas fa-search"></i> Process Resumes
+                </button>
+            </form>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loading" class="loading-container" style="display: none;">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3">Analyzing resumes... Please wait.</p>
+        </div>
+
+        <!-- Results Card -->
+        <div id="response" class="mt-4"></div>
+    </div>
 
     <script>
         // Dark mode toggle
         const darkModeToggle = document.getElementById('darkModeToggle');
+        const themeLabel = document.getElementById('themeLabel');
         const body = document.body;
 
         function applyTheme() {
@@ -74,85 +439,158 @@
             if (theme === 'dark') {
                 body.classList.add('dark-mode');
                 darkModeToggle.checked = true;
+                themeLabel.textContent = 'Light Mode';
             } else {
                 body.classList.remove('dark-mode');
                 darkModeToggle.checked = false;
+                themeLabel.textContent = 'Dark Mode';
             }
         }
 
         darkModeToggle.addEventListener('change', () => {
             localStorage.setItem('theme', darkModeToggle.checked ? 'dark' : 'light');
+            themeLabel.textContent = darkModeToggle.checked ? 'Light Mode' : 'Dark Mode';
             applyTheme();
         });
 
         applyTheme();
 
-        // Handle file selection
+        // Drag and drop file upload
+        const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('resumes');
         const fileCountDisplay = document.getElementById('fileCount');
         const submitBtn = document.getElementById('submitBtn');
 
-        fileInput.addEventListener('change', () => {
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#4361ee';
+            uploadArea.style.backgroundColor = body.classList.contains('dark-mode') ? 'rgba(67, 97, 238, 0.1)' : 'rgba(67, 97, 238, 0.05)';
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = body.classList.contains('dark-mode') ? '#555' : '#ccc';
+            uploadArea.style.backgroundColor = '';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = body.classList.contains('dark-mode') ? '#555' : '#ccc';
+            uploadArea.style.backgroundColor = '';
+            
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                updateFileCount();
+            }
+        });
+
+        fileInput.addEventListener('change', updateFileCount);
+
+        function updateFileCount() {
             const fileCount = fileInput.files.length;
-            fileCountDisplay.textContent = fileCount ? `${fileCount} file(s) selected` : "";
-            submitBtn.disabled = fileCount === 0;
+            if (fileCount > 0) {
+                fileCountDisplay.innerHTML = `<i class="fas fa-check-circle text-success"></i> ${fileCount} file(s) selected`;
+                submitBtn.disabled = false;
+            } else {
+                fileCountDisplay.textContent = "";
+                submitBtn.disabled = true;
+            }
+        }
+
+        // Update threshold display
+        const strictnessInput = document.getElementById('strictness');
+        const thresholdValueDisplay = document.getElementById('thresholdValue');
+
+        strictnessInput.addEventListener('input', () => {
+            thresholdValueDisplay.textContent = strictnessInput.value;
         });
 
         // Form submission with spinner
         document.getElementById('uploadMatchForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            document.getElementById('loading').style.display = 'block';
+            document.getElementById('loading').style.display = 'flex';
             document.getElementById('response').innerHTML = '';
             submitBtn.disabled = true;
 
             const formData = new FormData();
             Array.from(fileInput.files).forEach(file => formData.append('resumes', file));
             formData.append('job_description', document.getElementById('job_description').value);
+            formData.append('strictness', strictnessInput.value);
+            formData.append('fraudDetection', document.getElementById('fraudDetection').checked);
 
             try {
                 const response = await fetch('/resumes/upload_and_match', { method: 'POST', body: formData });
                 const data = await response.json();
 
                 if (data.error) {
-                    document.getElementById('response').innerHTML = `<p class="text-danger">Error: ${data.error}</p>`;
+                    document.getElementById('response').innerHTML = `
+                        <div class="card">
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle"></i> Error: ${data.error}
+                            </div>
+                        </div>
+                    `;
                 } else {
                     let resultHtml = `
-                        <h5 class="mt-4">${data.message}</h5>
-                        <h6>Shortlisted Candidates:</h6>
-                        <ul class="list-group">`;
+                        <div class="card">
+                            <h3 class="card-title">
+                                <i class="fas fa-chart-bar"></i>
+                                Results
+                            </h3>
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i> ${data.message}
+                            </div>
+                            <h5 class="mb-3">Shortlisted Candidates</h5>
+                            <div class="list-group">`;
 
                     // Add matched resumes
                     data.matches.forEach(match => {
                         resultHtml += `
-                            <li class="list-group-item">
-                                <strong>${match.resume}</strong><br>
-                                <span class="text-muted">Score: ${match.score} | Email: ${match.email}</span><br>
-                                <small class="text-muted">Reason: ${match.reason}</small>
-                            </li>`;
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong>${match.resume}</strong>
+                                    <span class="candidate-score">${match.score}%</span>
+                                </div>
+                                <span class="candidate-email">
+                                    <i class="fas fa-envelope"></i> ${match.email === "No Email Found" ? 
+                                        '<span class="text-warning">No Email Found</span>' : match.email}
+                                </span>
+                            </div>`;
                     });
 
-                    resultHtml += `</ul>`;
+                    resultHtml += `</div>`;
 
-                    // Show candidates with no email
-                    const noEmailCandidates = data.matches.filter(match => match.email === "No Email Found");
-                    if (noEmailCandidates.length > 0) {
-                        resultHtml += `
-                            <h6 class="mt-4 text-warning">Candidates Without Email:</h6>
-                            <ul class="list-group">`;
-
-                        noEmailCandidates.forEach(match => {
-                            resultHtml += `<li class="list-group-item text-warning"><strong>${match.resume}</strong> (No Email Found)</li>`;
-                        });
-
-                        resultHtml += `</ul>`;
-                    }
-
-                    resultHtml += `<p class="mt-3">Emails Sent: ${data.emails_sent}</p>`;
+                    // Show result summary
+                    resultHtml += `
+                        <div class="result-summary">
+                            <div class="summary-item">
+                                <div class="summary-value">${data.matches.length}</div>
+                                <div class="summary-label">Candidates</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-value">${data.emails_sent}</div>
+                                <div class="summary-label">Emails Sent</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-value">${data.matches.filter(m => m.email === "No Email Found").length}</div>
+                                <div class="summary-label">Missing Emails</div>
+                            </div>
+                        </div>
+                    </div>`;
 
                     document.getElementById('response').innerHTML = resultHtml;
                 }
             } catch (err) {
-                document.getElementById('response').innerHTML = `<p class="text-danger">Error: ${err.message}</p>`;
+                document.getElementById('response').innerHTML = `
+                    <div class="card">
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> Error: ${err.message}
+                        </div>
+                    </div>
+                `;
             } finally {
                 document.getElementById('loading').style.display = 'none';
                 submitBtn.disabled = false;

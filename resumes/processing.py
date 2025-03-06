@@ -2,8 +2,12 @@ import pdfplumber
 import re
 import numpy as np
 import faiss
+from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
-from resumes.llm_filter import evaluate_resume_with_llm # Import LLM function
+from resumes.llm_filter import evaluate_resumes_with_llm  # Import LLM fraud detection function
+
+# Load embedding model
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
 def extract_text_from_pdf(pdf_file):
     """Extracts text from a PDF file."""
@@ -18,46 +22,63 @@ def extract_email(text):
 
 def preprocess_text(text):
     """Cleans and normalizes text."""
+    if not isinstance(text, str):
+        text = str(text)  # Convert non-string input to string
+    
     text = text.lower()
     text = re.sub(r"[^a-zA-Z0-9\s]", "", text)
     return text
 
-# Load embedding model
-model = SentenceTransformer("all-MiniLM-L6-v2")
 
 def get_embedding(text):
     """Generates an embedding vector for the given text."""
     return model.encode(text, convert_to_numpy=True)
 
-def build_faiss_index(resume_embeddings):
-    """Creates FAISS index for similarity search."""
-    if resume_embeddings:
-        d = len(resume_embeddings[0])
-        index = faiss.IndexFlatL2(d)
-        index.add(np.array(resume_embeddings))
-        return index
-    return None
 
-def filter_resumes_with_llm(resumes, job_description, threshold=50):
+def calculate_similarity(resume_embeddings, job_embedding):
     """
-    Uses an LLM to filter resumes based on job relevance.
-
-    Args:
-        resumes (list of dict): List of resumes with text, embeddings, and emails.
-        job_description (str): The job description.
-        threshold (int): Minimum score required to be shortlisted.
-
-    Returns:
-        List of shortlisted resumes with LLM scores.
+    Computes cosine similarity scores between resumes and the job description.
+    Returns scores in percentage (0-100).
     """
+    resume_embeddings = np.array(resume_embeddings)  # Ensure numpy array
+    job_embedding = job_embedding.reshape(1, -1)  # Reshape for compatibility
+
+    scores = cosine_similarity(resume_embeddings, job_embedding).flatten() * 100  # Convert to percentage
+
+    print(f"Cosine Similarity Scores: {scores}")  # Debugging Output
+
+    return scores.tolist()
+
+def match_resumes(resumes, threshold, job_description):
+    """
+    Matches resumes against a job description using cosine similarity.
+    Uses batch processing for fraud detection to reduce LLM calls.
+    """
+    job_embedding = get_embedding(preprocess_text(job_description))
+    resume_embeddings = [r["embedding"] for r in resumes]
+
+    # Calculate similarity scores
+    scores = calculate_similarity(resume_embeddings, job_embedding)
+
+    # Shortlist resumes based on similarity score
     shortlisted_resumes = []
+    shortlisted_texts = []
 
-    for resume in resumes:
-        score, reason = evaluate_resume_with_llm(resume["text"], job_description)
+    for i, resume in enumerate(resumes):
+        resume["score"] = round(scores[i], 2)  # Store rounded score
 
-        if score >= threshold:
-            resume["score"] = score
-            resume["reason"] = reason
+        if scores[i] >= threshold:  # Ensure correct thresholding
             shortlisted_resumes.append(resume)
+            shortlisted_texts.append(resume["text"])  # Collect texts for batch fraud detection
+
+    # Debugging: Check threshold filtering
+    print(f"Threshold: {threshold}")
+    print(f"Shortlisted Resume Scores: {[r['score'] for r in shortlisted_resumes]}")
+
+    # Batch process fraud detection for shortlisted resumes
+    fraud_results = evaluate_resumes_with_llm(shortlisted_texts, job_description)
+
+    for resume in shortlisted_resumes:
+        resume["is_fraudulent"] = fraud_results.get(resume["text"], {}).get("fraud_detected", False)
 
     return shortlisted_resumes
