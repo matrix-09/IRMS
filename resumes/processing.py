@@ -4,7 +4,9 @@ import numpy as np
 import faiss
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
-from resumes.llm_filter import evaluate_resumes_with_llm  # Import LLM fraud detection function
+from resumes.llm_filter import generate_llm_feedback  # Import LLM fraud detection function
+
+from pdfminer.high_level import extract_text
 
 # Load embedding model
 model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -14,6 +16,7 @@ def extract_text_from_pdf(pdf_file):
     with pdfplumber.open(pdf_file) as pdf:
         text = "\n".join([page.extract_text() for page in pdf.pages if page.extract_text()])
     return text.strip()
+
 
 def extract_email(text):
     """Extracts the first email found in the resume text."""
@@ -52,8 +55,9 @@ def calculate_similarity(resume_embeddings, job_embedding):
 def match_resumes(resumes, threshold, job_description):
     """
     Matches resumes against a job description using cosine similarity.
-    Uses batch processing for fraud detection to reduce LLM calls.
+    Uses batch processing to improve efficiency.
     """
+
     job_embedding = get_embedding(preprocess_text(job_description))
     resume_embeddings = [r["embedding"] for r in resumes]
 
@@ -62,23 +66,15 @@ def match_resumes(resumes, threshold, job_description):
 
     # Shortlist resumes based on similarity score
     shortlisted_resumes = []
-    shortlisted_texts = []
 
     for i, resume in enumerate(resumes):
         resume["score"] = round(scores[i], 2)  # Store rounded score
 
         if scores[i] >= threshold:  # Ensure correct thresholding
             shortlisted_resumes.append(resume)
-            shortlisted_texts.append(resume["text"])  # Collect texts for batch fraud detection
 
     # Debugging: Check threshold filtering
     print(f"Threshold: {threshold}")
     print(f"Shortlisted Resume Scores: {[r['score'] for r in shortlisted_resumes]}")
-
-    # Batch process fraud detection for shortlisted resumes
-    fraud_results = evaluate_resumes_with_llm(shortlisted_texts, job_description)
-
-    for resume in shortlisted_resumes:
-        resume["is_fraudulent"] = fraud_results.get(resume["text"], {}).get("fraud_detected", False)
 
     return shortlisted_resumes

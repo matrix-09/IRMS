@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HR Dashboard</title>
+    <title>Resume Matcher | HR Tools</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -334,6 +334,69 @@
             color: #adb5bd;
         }
 
+        /* Email notification styles */
+        .email-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--success-color);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 9999;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .email-notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .email-icon {
+            font-size: 1.5rem;
+        }
+
+        .email-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .email-count {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .email-message {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Animation for email counter */
+        @keyframes countUp {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .animate-count {
+            animation: countUp 0.8s ease-out;
+        }
+
         @media (max-width: 768px) {
             .navbar-actions {
                 flex-direction: column;
@@ -343,6 +406,12 @@
 
             .card {
                 padding: 1.5rem;
+            }
+            
+            .email-notification {
+                left: 20px;
+                right: 20px;
+                width: calc(100% - 40px);
             }
         }
     </style>
@@ -369,6 +438,17 @@
             </div>
         </div>
     </nav>
+
+    <!-- Email Notification -->
+    <div id="emailNotification" class="email-notification">
+        <div class="email-icon">
+            <i class="fas fa-paper-plane"></i>
+        </div>
+        <div class="email-content">
+            <div class="email-count"><span id="emailCounter">0</span> Emails Sent!</div>
+            <div class="email-message">Candidates have been notified</div>
+        </div>
+    </div>
 
     <div class="main-container">
         <h2 class="page-title">Resume Screening Tool</h2>
@@ -402,14 +482,7 @@
                 </div>
                 <div class="threshold-display">Current Threshold: <span id="thresholdValue">50</span>%</div>
 
-                <!-- Fraud Detection Checkbox -->
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="fraudDetection" name="fraudDetection">
-                    <label class="form-check-label" for="fraudDetection">
-                        Enable Resume Fraud Detection
-                    </label>
-                </div>
-
+                <!-- Submit Button -->
                 <button type="submit" id="submitBtn" class="btn btn-primary w-100" disabled>
                     <i class="fas fa-search"></i> Process Resumes
                 </button>
@@ -425,7 +498,20 @@
         </div>
 
         <!-- Results Card -->
-        <div id="response" class="mt-4"></div>
+        <div id="results" class="card" style="display: none;">
+            <h3 class="card-title">
+                <i class="fas fa-chart-bar"></i>
+                Results
+            </h3>
+            <div id="alertMessage"></div>
+            
+            <h5 class="mb-3">Matched Candidates</h5>
+            <div id="candidateList" class="list-group mb-4"></div>
+            
+            <div id="resultSummary" class="result-summary">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
     </div>
 
     <script>
@@ -434,6 +520,7 @@
         const themeLabel = document.getElementById('themeLabel');
         const body = document.body;
 
+        // Check for saved theme preference
         function applyTheme() {
             const theme = localStorage.getItem('theme');
             if (theme === 'dark') {
@@ -447,24 +534,28 @@
             }
         }
 
+        // Toggle theme
         darkModeToggle.addEventListener('change', () => {
             localStorage.setItem('theme', darkModeToggle.checked ? 'dark' : 'light');
             themeLabel.textContent = darkModeToggle.checked ? 'Light Mode' : 'Dark Mode';
             applyTheme();
         });
 
+        // Apply theme on page load
         applyTheme();
 
-        // Drag and drop file upload
+        // File upload functionality
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('resumes');
         const fileCountDisplay = document.getElementById('fileCount');
         const submitBtn = document.getElementById('submitBtn');
 
+        // Click to browse files
         uploadArea.addEventListener('click', () => {
             fileInput.click();
         });
 
+        // Drag and drop styling
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.style.borderColor = '#4361ee';
@@ -476,6 +567,7 @@
             uploadArea.style.backgroundColor = '';
         });
 
+        // Handle dropped files
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadArea.style.borderColor = body.classList.contains('dark-mode') ? '#555' : '#ccc';
@@ -487,6 +579,7 @@
             }
         });
 
+        // Update on file selection
         fileInput.addEventListener('change', updateFileCount);
 
         function updateFileCount() {
@@ -508,90 +601,143 @@
             thresholdValueDisplay.textContent = strictnessInput.value;
         });
 
-        // Form submission with spinner
+        // Email notification functions
+        function showEmailNotification(count) {
+            const notification = document.getElementById('emailNotification');
+            const counter = document.getElementById('emailCounter');
+            
+            // Set counter and add animation class
+            counter.textContent = count;
+            counter.classList.add('animate-count');
+            
+            // Show notification
+            notification.classList.add('show');
+            
+            // Remove animation class after animation completes
+            setTimeout(() => {
+                counter.classList.remove('animate-count');
+            }, 800);
+            
+            // Hide notification after 5 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 5000);
+        }
+
+        // Form submission
         document.getElementById('uploadMatchForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             document.getElementById('loading').style.display = 'flex';
-            document.getElementById('response').innerHTML = '';
+            document.getElementById('results').style.display = 'none';
             submitBtn.disabled = true;
 
             const formData = new FormData();
             Array.from(fileInput.files).forEach(file => formData.append('resumes', file));
             formData.append('job_description', document.getElementById('job_description').value);
             formData.append('strictness', strictnessInput.value);
-            formData.append('fraudDetection', document.getElementById('fraudDetection').checked);
 
             try {
-                const response = await fetch('/resumes/upload_and_match', { method: 'POST', body: formData });
+                const response = await fetch('/resumes/upload_and_match', {
+                    method: 'POST',
+                    body: formData
+                });
+                
                 const data = await response.json();
+                console.log('API Response:', data);  // Detailed logging
 
-                if (data.error) {
-                    document.getElementById('response').innerHTML = `
-                        <div class="card">
-                            <div class="alert alert-danger">
-                                <i class="fas fa-exclamation-circle"></i> Error: ${data.error}
-                            </div>
+                // Display results
+                if (!data.success || data.error) {
+                    // Show error message (handle both error cases)
+                    const errorMsg = data.error || 'An unknown error occurred';
+                    document.getElementById('alertMessage').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle"></i> Error: ${errorMsg}
                         </div>
                     `;
                 } else {
-                    let resultHtml = `
-                        <div class="card">
-                            <h3 class="card-title">
-                                <i class="fas fa-chart-bar"></i>
-                                Results
-                            </h3>
-                            <div class="alert alert-success">
-                                <i class="fas fa-check-circle"></i> ${data.message}
-                            </div>
-                            <h5 class="mb-3">Shortlisted Candidates</h5>
-                            <div class="list-group">`;
-
-                    // Add matched resumes
-                    data.matches.forEach(match => {
-                        resultHtml += `
-                            <div class="list-group-item">
+                    // Show success message
+                    document.getElementById('alertMessage').innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> ${data.message}
+                        </div>
+                    `;
+                    
+                    // Safely populate candidate list
+                    const candidateListElement = document.getElementById('candidateList');
+                    candidateListElement.innerHTML = '';
+                    
+                    // Check if matches exists and is an array
+                    if (data.matches && Array.isArray(data.matches)) {
+                        data.matches.forEach(match => {
+                            const candidateElement = document.createElement('div');
+                            candidateElement.className = `list-group-item ${match.status === 'shortlisted' ? 'list-group-item-success' : ''}`;
+                            candidateElement.innerHTML = `
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <strong>${match.resume}</strong>
-                                    <span class="candidate-score">${match.score}%</span>
+                                    <strong>${match.resume || 'Unknown Resume'}</strong>
+                                    <span class="candidate-score" style="background-color: ${match.status === 'shortlisted' ? 'rgba(40, 167, 69, 0.1)' : 'rgba(108, 117, 125, 0.1)'}; 
+                                        color: ${match.status === 'shortlisted' ? '#28a745' : '#6c757d'}">
+                                        ${Math.round(match.score || 0)}%
+                                    </span>
                                 </div>
                                 <span class="candidate-email">
                                     <i class="fas fa-envelope"></i> ${match.email === "No Email Found" ? 
-                                        '<span class="text-warning">No Email Found</span>' : match.email}
+                                        '<span class="text-warning">No Email Found</span>' : (match.email || 'No Email Provided')}
                                 </span>
-                            </div>`;
-                    });
-
-                    resultHtml += `</div>`;
-
-                    // Show result summary
-                    resultHtml += `
-                        <div class="result-summary">
+                                ${match.status === 'shortlisted' ? 
+                                    '<span class="badge bg-success float-end mt-1">Shortlisted</span>' : 
+                                    '<span class="badge bg-secondary float-end mt-1">Not Shortlisted</span>'}
+                            `;
+                            candidateListElement.appendChild(candidateElement);
+                        });
+                    } else {
+                        console.error('Invalid matches data:', data.matches);
+                        candidateListElement.innerHTML = '<div class="alert alert-warning">No candidate data available</div>';
+                    }
+                    
+                    // Safely update result summary with fallback values
+                    document.getElementById('resultSummary').innerHTML = `
+                        <div class="d-flex flex-wrap justify-content-between gap-3">
                             <div class="summary-item">
-                                <div class="summary-value">${data.matches.length}</div>
-                                <div class="summary-label">Candidates</div>
+                                <div class="summary-value">${data.total_candidates || 0}</div>
+                                <div class="summary-label">Total Candidates</div>
                             </div>
                             <div class="summary-item">
-                                <div class="summary-value">${data.emails_sent}</div>
+                                <div class="summary-value">${data.shortlisted_count || 0}</div>
+                                <div class="summary-label">Shortlisted</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-value">${data.non_shortlisted_count || 0}</div>
+                                <div class="summary-label">Not Shortlisted</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-value">${data.emails_sent || 0}</div>
                                 <div class="summary-label">Emails Sent</div>
                             </div>
                             <div class="summary-item">
-                                <div class="summary-value">${data.matches.filter(m => m.email === "No Email Found").length}</div>
+                                <div class="summary-value">${data.missing_emails || 0}</div>
                                 <div class="summary-label">Missing Emails</div>
                             </div>
                         </div>
-                    </div>`;
-
-                    document.getElementById('response').innerHTML = resultHtml;
+                    `;
+                    
+                    // Show email notification if applicable
+                    if (data.emails_sent && data.emails_sent > 0) {
+                        showEmailNotification(data.emails_sent);
+                    }
                 }
-            } catch (err) {
-                document.getElementById('response').innerHTML = `
-                    <div class="card">
-                        <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-triangle"></i> Error: ${err.message}
-                        </div>
+
+                // Show results section
+                document.getElementById('results').style.display = 'block';
+                
+            } catch (error) {
+                document.getElementById('alertMessage').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error: ${error.message}
                     </div>
                 `;
+                document.getElementById('results').style.display = 'block';
             } finally {
+                // Hide loading spinner
                 document.getElementById('loading').style.display = 'none';
                 submitBtn.disabled = false;
             }

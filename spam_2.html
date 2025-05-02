@@ -1,0 +1,77 @@
+
+    
+    // Display results
+    if (data.error) {
+        // Show error message
+        document.getElementById('alertMessage').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> Error: ${data.error}
+            </div>
+        `;
+    } else {
+        // Show success message
+        document.getElementById('alertMessage').innerHTML = `
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i> ${data.message}
+            </div>
+        `;
+        
+        // Populate candidate list
+        const candidateListElement = document.getElementById('candidateList');
+        candidateListElement.innerHTML = '';
+        
+        data.matches.forEach(match => {
+            const candidateElement = document.createElement('div');
+            candidateElement.className = 'list-group-item';
+            candidateElement.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <strong>${match.resume}</strong>
+                    <span class="candidate-score">${Math.round(match.score)}%</span>
+                </div>
+                <span class="candidate-email">
+                    <i class="fas fa-envelope"></i> ${match.email === "No Email Found" ? 
+                        '<span class="text-warning">No Email Found</span>' : match.email}
+                </span>
+            `;
+            candidateListElement.appendChild(candidateElement);
+        });
+        
+        // Update result summary
+        document.getElementById('resultSummary').innerHTML = `
+            <div class="summary-item">
+                <div class="summary-value">${data.matches.length}</div>
+                <div class="summary-label">Candidates</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value">${data.emails_sent || 0}</div>
+                <div class="summary-label">Emails Sent</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value">${data.matches.filter(m => m.email === "No Email Found").length}</div>
+                <div class="summary-label">Missing Emails</div>
+            </div>
+        `;
+        
+        // Show email notification with animation
+        if (data.emails_sent && data.emails_sent > 0) {
+            showEmailNotification(data.emails_sent);
+        }
+    }
+    
+    // Show results section
+    document.getElementById('results').style.display = 'block';
+    
+    <div id="results" class="card" style="display: none;">
+        <h3 class="card-title">
+            <i class="fas fa-chart-bar"></i>
+            Results
+        </h3>
+        <div id="alertMessage"></div>
+        
+        <h5 class="mb-3">Matched Candidates</h5>
+        <div id="candidateList" class="list-group mb-4"></div>
+        
+        <div id="resultSummary" class="result-summary">
+            <!-- Will be populated by JavaScript -->
+        </div>
+    </div>

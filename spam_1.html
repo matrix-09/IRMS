@@ -1,0 +1,113 @@
+// Display results
+if (data.error) {
+    // Show error message
+    document.getElementById('alertMessage').innerHTML = `
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle"></i> Error: ${data.error}
+        </div>
+    `;
+} else {
+    // Show success message
+    document.getElementById('alertMessage').innerHTML = `
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i> ${data.message}
+        </div>
+    `;
+    
+    // Create tabs for shortlisted and non-shortlisted candidates
+    const candidateListElement = document.getElementById('candidateList');
+    candidateListElement.innerHTML = `
+        <ul class="nav nav-tabs" id="candidateTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="shortlisted-tab" data-bs-toggle="tab" 
+                    data-bs-target="#shortlisted" type="button" role="tab" 
+                    aria-controls="shortlisted" aria-selected="true">
+                    Shortlisted (${data.shortlisted.length})
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="non-shortlisted-tab" data-bs-toggle="tab" 
+                    data-bs-target="#non-shortlisted" type="button" role="tab" 
+                    aria-controls="non-shortlisted" aria-selected="false">
+                    Not Shortlisted (${data.non_shortlisted.length})
+                </button>
+            </li>
+        </ul>
+        <div class="tab-content" id="candidateTabContent">
+            <div class="tab-pane fade show active" id="shortlisted" role="tabpanel" 
+                aria-labelledby="shortlisted-tab">
+                <div id="shortlistedCandidates" class="list-group mt-3"></div>
+            </div>
+            <div class="tab-pane fade" id="non-shortlisted" role="tabpanel" 
+                aria-labelledby="non-shortlisted-tab">
+                <div id="nonShortlistedCandidates" class="list-group mt-3"></div>
+            </div>
+        </div>
+    `;
+    
+    // Populate shortlisted candidates
+    const shortlistedElement = document.getElementById('shortlistedCandidates');
+    data.shortlisted.forEach(match => {
+        const candidateElement = document.createElement('div');
+        candidateElement.className = 'list-group-item list-group-item-success';
+        candidateElement.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <strong>${match.resume}</strong>
+                <span class="badge bg-success rounded-pill">${Math.round(match.score)}%</span>
+            </div>
+            <span class="candidate-email">
+                <i class="fas fa-envelope"></i> ${match.email === "No Email Found" ? 
+                    '<span class="text-warning">No Email Found</span>' : match.email}
+            </span>
+        `;
+        shortlistedElement.appendChild(candidateElement);
+    });
+    
+    // Populate non-shortlisted candidates
+    const nonShortlistedElement = document.getElementById('nonShortlistedCandidates');
+    data.non_shortlisted.forEach(match => {
+        const candidateElement = document.createElement('div');
+        candidateElement.className = 'list-group-item list-group-item-light';
+        candidateElement.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <strong>${match.resume}</strong>
+                <span class="badge bg-secondary rounded-pill">${Math.round(match.score)}%</span>
+            </div>
+            <span class="candidate-email">
+                <i class="fas fa-envelope"></i> ${match.email === "No Email Found" ? 
+                    '<span class="text-warning">No Email Found</span>' : match.email}
+            </span>
+        `;
+        nonShortlistedElement.appendChild(candidateElement);
+    });
+    
+    // Update result summary
+    document.getElementById('resultSummary').innerHTML = `
+        <div class="summary-item">
+            <div class="summary-value">${data.shortlisted.length}</div>
+            <div class="summary-label">Shortlisted</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-value">${data.non_shortlisted.length}</div>
+            <div class="summary-label">Not Shortlisted</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-value">${data.shortlisted_emails_sent}</div>
+            <div class="summary-label">Shortlist Emails Sent</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-value">${data.non_shortlisted_emails_sent}</div>
+            <div class="summary-label">Feedback Emails Sent</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-value">${data.shortlisted.filter(m => m.email === "No Email Found").length + 
+                data.non_shortlisted.filter(m => m.email === "No Email Found").length}</div>
+            <div class="summary-label">Missing Emails</div>
+        </div>
+    `;
+    
+    // Show email notification with animation
+    if (data.total_emails_sent > 0) {
+        showEmailNotification(data.total_emails_sent);
+    }
+}

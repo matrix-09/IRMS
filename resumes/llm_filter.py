@@ -2,59 +2,39 @@ import requests
 import re
 import hashlib
 import json
-
+import aiohttp
 # API Endpoint and Key
-API_URL = "https://open-ai21.p.rapidapi.com/open-ai21.p.rapidapi.com"  # Replace with actual API URL
-API_KEY = "71fdbe08f2msh32eb22d5522751ep186101jsn5a423cf3420b"  # Replace with your API key
-
-# Cache dictionary to store fraud detection results
-fraud_cache = {}
+API_URL = "https://open-ai21.p.rapidapi.com/conversationllama"  # Replace with actual API URL
+API_KEY = "a991133e21mshc05b33ebc46179fp1b4923jsn421d38661c82"  # Replace with your API key
 
 def hash_resume_text(resume_text):
     """Generate a unique hash for the resume text to use as a cache key."""
     return hashlib.md5(resume_text.encode()).hexdigest()
 
-def evaluate_resumes_with_llm(resume_texts, job_description):
-    """
-    Uses LLM to evaluate multiple resumes at once.
-    Caches results to avoid redundant API calls.
-    """
-
-    # Identify which resumes need evaluation
-    resumes_to_check = []
-    resume_hashes = {}
-
-    for resume_text in resume_texts:
-        resume_hash = hash_resume_text(resume_text)
-        resume_hashes[resume_text] = resume_hash
-
-        if resume_hash in fraud_cache:
-            continue  # Skip if already cached
-        resumes_to_check.append(resume_text)
-
-    # If all resumes are cached, return results
-    if not resumes_to_check:
-        return {resume_text: fraud_cache[resume_hashes[resume_text]] for resume_text in resume_texts}
-
-    # Construct LLM prompt for batch processing
-    prompt = f"""
-    You are an AI assistant helping HRs evaluate multiple resumes at once. Given a job description and resumes, perform:
+async def fetch_llm_feedback(session, resumes_to_check, job_description):
+    """Fetch personalized feedback for resumes using LLM."""
     
-    **1. Fraud Detection:** Identify if each resume contains:
-    - Unrealistic job progressions or overlapping dates.
-    - Suspicious formatting.
-    - Fake experiences.
+    prompt = f"""
+    You are an AI HR assistant. Your job is to analyze each resume and provide 
+    **personalized constructive feedback** based on the job description.
 
-    **Job Description:**  
+    ### **Job Description:**  
     {job_description}
 
-    **Resumes:**  
+    ### **Resumes to Analyze (JSON Format):**  
     {json.dumps(resumes_to_check)}
 
-    Provide output as a JSON dictionary where keys are resume indices (0, 1, 2...) and values are:
+    ### **Expected Output (JSON Dictionary):**  
+    Return structured JSON feedback like this:
+    ```json
     {{
-      "fraud_detected": true/false
+        "0": "Your resume is strong but lacks AI/ML experience. Consider adding projects in this area.",
+        "1": "Your resume does not match the job description. Consider learning JAVA, SQL."
+        and so on for each resume.
     }}
+    ```
+    
+    **Ensure the response is in JSON format and does not contain 'No feedback available'.**
     """
 
     payload = {
@@ -68,26 +48,35 @@ def evaluate_resumes_with_llm(resume_texts, job_description):
         "Content-Type": "application/json"
     }
 
+    async with session.post(API_URL, json=payload, headers=headers) as response:
+        api_response = await response.json()
+
+        # Debug: Log API response
+        print("API Response:", json.dumps(api_response, indent=2))
+
+        return api_response  
+
+
+async def generate_llm_feedback(resume_texts, job_description):
+    """Generate structured feedback from LLM response."""
+
+    async with aiohttp.ClientSession() as session:
+        response_json = await fetch_llm_feedback(session, resume_texts, job_description)
+
+    # Extract LLM content safely
     try:
-        response = requests.post(API_URL, json=payload, headers=headers)
-        response.raise_for_status()
-        output_json = response.json().get("result", "{}")
+        raw_content = response_json["result"]  # << Correct key: "result"
 
-        # Parse LLM response
-        fraud_results = json.loads(output_json)
+        # Remove triple backticks and parse JSON inside
+        json_match = re.search(r"```json\s*(\{.*\})\s*```", raw_content, re.DOTALL)
+        clean_json_str = json_match.group(1) if json_match else raw_content
 
-        # Cache results
-        for i, resume_text in enumerate(resumes_to_check):
-            resume_hash = resume_hashes[resume_text]
-            fraud_cache[resume_hash] = fraud_results.get(str(i), {"fraud_detected": False})
+        # Parse JSON safely
+        feedback_dict = json.loads(clean_json_str)
 
-        # Return cached and new results
-        return {resume_text: fraud_cache[resume_hashes[resume_text]] for resume_text in resume_texts}
+    except (KeyError, json.JSONDecodeError) as e:
+        print(f"Error: {e}")
+        return {i: "Feedback unavailable" for i in range(len(resume_texts))}
 
-    except requests.exceptions.RequestException as e:
-        print(f"API Error: {e}")
-        return {resume_text: {"fraud_detected": False} for resume_text in resume_texts}
-
-    except Exception as e:
-        print(f"Unexpected Error: {e}")
-        return {resume_text: {"fraud_detected": False} for resume_text in resume_texts}
+    return {i: feedback_dict.get(str(i), "Feedback unavailable") for i in range(len(resume_texts))}
+  # Return raw API output for further processing
