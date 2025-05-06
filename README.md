@@ -1,1 +1,48 @@
-This project introduces a system that leverages natural language processing (NLP) and machine learning, specifically BERT embeddings and doc2vec, to quantify the similarity between a candidate’s resume and a job description. Key features include a certification check to validate candidate qualifications, automated email notifications to keep candidates informed, and a machine learning model that trains on cosine similarity scores to improve matching accuracy over time. Additionally, a feedback form via Google Forms enables employers to provide insights, further refining the system. Deployed through a user-friendly Streamlit interface, the tool allows employers to quickly assess and rank candidate resumes against job descriptions, optimizing the recruitment process and efficiently identifying the most suitable candidates. This comprehensive approach enhances the hiring process, ensuring a better fit for job roles. 
+# Intelligent Resume Matching System (IRMS) 🚀
+
+![IRMS System Overview](path/to/overview-image.png) <!-- Leave space for system overview image -->
+
+## 📌 Overview
+The Intelligent Resume Matching System (IRMS) is an AI-powered solution that automates resume screening, saving HR teams hundreds of hours. Our system:
+
+✔ Automatically analyzes resumes and job descriptions  
+✔ Scores candidates using AI-powered matching  
+✔ Sends personalized emails to all applicants  
+
+---
+
+## ✨ Key Features
+
+![Feature Demo](path/to/feature-demo.gif) <!-- Leave space for feature gif -->
+
+- **AI-Powered Matching** - BERT models understand resume context
+- **Custom Thresholds** - Set your own similarity cutoffs
+- **Automated Emails** - Personalized responses to all candidates
+- **Bias Reduction** - Objective scoring minimizes human bias
+
+---
+
+## 🛠️ Tech Stack
+
+| Component       | Technology |
+|----------------|------------|
+| Backend        | Python/Flask |
+| NLP Processing | BERT Sentence Transformers |
+| PDF Extraction | pdfplumber |
+| Database       | SQLite and MongoDB|
+| Frontend       | HTML/CSS |
+| Email          | SMTP |
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.8+
+- Git
+
+### Installation
+```bash
+git clone https://github.com/your-username/IRMS.git
+cd IRMS
+pip install -r requirements.txt
